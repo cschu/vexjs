@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <title></title>
+  <script type='text/javascript' src="../lib/d3.js"></script>
+
+  <link href="style.css" rel="stylesheet"/>
+  <style>
+    .tooltip {
+      font-size: 12px;
+    }
+    .tooltip_bg {
+      fill: white;
+      stroke: black;
+      stroke-width: 1;
+      opacity: 0.85;
+    }
+  </style>
+
+  <script>
+    function displayChromosome2(chrFile) {
+      alert(chrFile);
+    }
+    var selectedElement = 0;
+    var currentX = 0;
+    var currentY = 0;
+    var currentMatrix = 0;
+
+    function init(evt) {
+      if ( window.svgDocument == null ) {
+        svgDocument = evt.target.ownerDocument;
+      }
+      tooltip = svgDocument.getElementById('tooltip');
+      tooltip_bg = svgDocument.getElementById('tooltip_bg');
+    }
+
+    function ShowTooltip(evt, mouseovertext, x, y) {
+
+      tooltip.setAttributeNS(null,"x",x+11);
+      tooltip.setAttributeNS(null,"y",y+27);
+      tooltip.firstChild.data = mouseovertext;
+      tooltip.setAttributeNS(null,"visibility","visible");
+      tooltip_bg.setAttributeNS(null,"x",x+8);
+      tooltip_bg.setAttributeNS(null,"y",y+16);
+      tooltip_bg.setAttributeNS(null,"visibility","visible");
+      length = tooltip.getComputedTextLength();
+      tooltip_bg.setAttributeNS(null,"width",length+8);
+    }
+
+    function HideTooltip() {
+      tooltip.setAttributeNS(null,"visibility","hidden");
+      tooltip_bg.setAttributeNS(null,"visibility","hidden");
+    }
+
+    function selectElement(evt) {
+       selectedElement = evt.target.parentElement;
+       currentX = evt.clientX;
+       currentY = evt.clientY;
+       currentMatrix = selectedElement.getAttributeNS(null, "transform").slice(7,-1).split(' ');
+       for(var i=0; i<currentMatrix.length; i++) {
+         currentMatrix[i] = parseFloat(currentMatrix[i]);
+       }
+       selectedElement.setAttributeNS(null, "onmousemove", "moveElement(evt)");
+       selectedElement.setAttributeNS(null, "onmouseout", "deselectElement(evt)");
+       selectedElement.setAttributeNS(null, "onmouseup", "deselectElement(evt)");
+     }
+
+     function moveElement(evt){
+      dx = evt.clientX - currentX;
+      dy = evt.clientY - currentY;
+      currentMatrix[4] += dx;
+      currentMatrix[5] += dy;
+      newMatrix = "matrix(" + currentMatrix.join(' ') + ")";
+
+      selectedElement.setAttributeNS(null, "transform", newMatrix);
+      currentX = evt.clientX;
+      currentY = evt.clientY;
+    }
+    function deselectElement(evt){
+      if(selectedElement != 0){
+        selectedElement.removeAttributeNS(null, "onmousemove");
+        selectedElement.removeAttributeNS(null, "onmouseout");
+        selectedElement.removeAttributeNS(null, "onmouseup");
+        selectedElement = 0;
+      }
+    }
+
+    dragBehavior = d3.behavior.drag()
+        .on('dragend', onDragStart)
+        .on('drag', onDrag)
+        .on('dragend', onDragEnd);
+
+    function flashRect() {
+        rect.attr('fill', 'red').transition().attr('fill', 'black');
+    }
+
+    function onDragStart() {
+        console.log('onDragStart');
+    }
+
+    function onDrag() {
+        console.log('onDrag');
+
+        var x = (d3.event.sourceEvent.pageX);
+        var y = (d3.event.sourceEvent.pageY);
+
+        d3.select(this).attr('transform', 'translate(' + x + ')');
+
+        wasDragged = true;
+    }
+
+    function onDragEnd() {
+        if (wasDragged === true) {
+            console.log('onDragEnd');
+
+            // always do this on drag end
+            //flashRect();
+        }    wasDragged = false;
+    }
+
+    function onClick(d) {
+        if (d3.event.defaultPrevented === false) {
+            console.log('onClick');
+
+            // only do this on click if we didn't just finish dragging
+            flashRect();
+        }
+    }
+
+    function displayChromosome(chrFile) {
+      d3.select('svg').remove();
+      line_objects = [];
+
+      d3.tsv(chrFile, function(data) {
+        Object.keys(data[0]).forEach(function(key, index) {
+          if (index > 1) {
+            line_objects.push({name: key, phenotype: data[0][key], positions: []});
+          }
+        });
+
+        for (var i=1; i<data.length; i++) {
+          Object.keys(data[i]).forEach(function(key, index) {
+            if (index > 1) {
+              line_objects[index-2].positions.push({pos:data[i].POS, call:data[i][key]});
+            }
+          });
+        }
+      console.log(line_objects[0])
+
+      var x0 = 0, y0 = 5;
+
+      line_objects.sort(function(a, b){
+          var x = a.phenotype,
+              y = b.phenotype;
+          return ((x < y) ? -1 : ((x > y) ? 1 : 0));
+        });
+      console.log(line_objects);
+
+      var W_sep_set = false, S_sep_set = false;
+
+      var draw = d3.select('#variant-explorer').append('svg')
+        .attr('float', 'left')
+        .attr('width', line_objects[0].positions.length * 10 + 'px')
+        .attr('height', line_objects.length * 10 + 'px')
+        .attr('position', 'relative')
+        .attr('id', 'vex-svg')
+        .attr('margin', '0px 0px 0px 0px')
+        .attr('padding', '0px 0px 0px 0px')
+        .attr('display', 'block')
+        //.attr('onmousedown', 'selectElement(evt)' )
+        .attr('transform', 'matrix(1 0 0 1 0 0)')
+        .attr('onload', 'init(evt)');
+
+      for (var i=0; i<line_objects.length; i++) {
+
+        drawgroup = draw.append('g')
+          .attr('id', 'vex-svg-' + line_objects[i].name)
+          .attr('transform', 'matrix(1 0 0 1 0 0)')
+          //.attr('onmousedown', 'selectElement(evt)');
+          .attr('ondragstart', 'dragstart_handler(event);')
+          .attr('ondrop', 'drop_handler(event);')
+          .attr('ondragover', 'dragover_handler(event);')
+          .attr('draggable', 'true');
+        drawgroup
+          .call(dragBehavior)
+          .on('click', onClick);
+
+
+        var y = y0 + i * 6;
+        if (line_objects[i].phenotype == 'W') {
+          color = '#00f';
+          if (!W_sep_set) {
+            draw.append('rect')
+                .attr('x', x0)
+                .attr('y', y-1)
+                .attr('color', '#000')
+                .attr('height', 1 + 'px')
+                .attr('width', line_objects[0].positions.length * 10);
+            W_sep_set = true;
+          }
+        } else if (line_objects[i].phenotype == 'S') {
+          color = '#f00';
+          if (!S_sep_set) {
+            draw.append('rect')
+                .attr('x', x0)
+                .attr('y', y-1)
+                .attr('color', '#000')
+                .attr('height', 1 + 'px')
+                .attr('width', line_objects[0].positions.length * 10);
+            S_sep_set = true;
+          }
+        } else if (line_objects[i].phenotype == 'R') {
+          color = '#0f0';
+        }
+
+        drawgroup.append('rect')
+            .attr('x', x0)
+            .attr('y', y)
+            .attr('fill', color)
+            .attr('height', 5 + 'px')
+            .attr('width', 5 + 'px');
+
+        for (var j=0,x=11; j<line_objects[i].positions.length; j++, x+=6) {
+          if (line_objects[i].positions[j].call == 'NA') {
+            color = '#fff';
+            call = 'NA';
+          } else if (line_objects[i].positions[j].call >= 0.9) {
+            color = '#cfc';
+            call = 'homA';
+          } else if (line_objects[i].positions[j].call <= 0.1) {
+            color ='#fcc';
+            call = 'homR';
+          } else { //if (line_objects[i].positions[j].call == 'het') {
+            color = '#ffc';
+            call = 'het';
+          }
+
+          var tt_text = line_objects[i].name + ':' + line_objects[i].phenotype + ':' + line_objects[i].positions[j].pos + ':' + call + ' (af=' + line_objects[i].positions[j].call + ')';
+          drawgroup.append('rect')
+              .attr('x', x)
+              .attr('y', y)
+              .attr('fill', color)
+              .attr('height', 5 + 'px')
+              .attr('width', 5 + 'px')
+              .attr('onmousemove', 'ShowTooltip(evt, "' + tt_text + '",' + x + ',' + y + ')')
+              .attr('onmouseout', 'HideTooltip(evt)');
+
+        }
+
+      }
+
+       draw.append('rect')
+        .attr('x', 0)
+        .attr('y', 0)
+        .attr('rx', 4)
+        .attr('ry', 4)
+        .attr('width', 52)
+        .attr('height', 16)
+        .attr('class', 'tooltip_bg')
+        .attr('id', 'tooltip_bg')
+        .attr('visibility', 'hidden');
+
+
+      draw.append('text')
+          .attr('x', 0)
+          .attr('y', 0)
+          .attr('class', 'tooltip')
+          .attr('id', 'tooltip')
+          .attr('visibility', 'hidden')
+          .text('Tooltip');
+      });
+  }
+
+
+
+  </script>
+
+
+</head>
+<body style="width: 100%; height: 100%;" onload="displayChromosome('data/NRGENE.chr1B.vcf.hom90.afTable.tsv')">
+  <form>
+    <select name="chrSelect" onload="displayChromosome(this.value)" onchange="displayChromosome(this.value)">
+      <option value="data/NRGENE.chr1A.vcf.hom90.afTable.tsv">Chr1A</option>
+      <option value="data/NRGENE.chr1B.vcf.hom90.afTable.tsv" selected="true">Chr1B</option>
+      <option value="data/NRGENE.chr2A.vcf.hom90.afTable.tsv">Chr2A</option>
+      <option value="data/NRGENE.chr2B.vcf.hom90.afTable.tsv">Chr2B</option>
+      <option value="data/NRGENE.chr3A.vcf.hom90.afTable.tsv">Chr3A</option>
+      <option value="data/NRGENE.chr3B.vcf.hom90.afTable.tsv">Chr3B</option>
+      <option value="data/NRGENE.chr4A.vcf.hom90.afTable.tsv">Chr4A</option>
+      <option value="data/NRGENE.chr4B.vcf.hom90.afTable.tsv">Chr4B</option>
+      <option value="data/NRGENE.chr5A.vcf.hom90.afTable.tsv">Chr5A</option>
+      <option value="data/NRGENE.chr5B.vcf.hom90.afTable.tsv">Chr5B</option>
+      <option value="data/NRGENE.chr6A.vcf.hom90.afTable.tsv">Chr6A</option>
+      <option value="data/NRGENE.chr6B.vcf.hom90.afTable.tsv">Chr6B</option>
+      <option value="data/NRGENE.chr7A.vcf.hom90.afTable.tsv">Chr7A</option>
+      <option value="data/NRGENE.chr7B.vcf.hom90.afTable.tsv">Chr7B</option>
+    </select>
+  </form>
+
+<div id="variant-explorer" style="width: 100%; height: 100%; position: relative;"></div>
+
+
+</body>
+</html>
