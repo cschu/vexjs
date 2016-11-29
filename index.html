@@ -24,24 +24,12 @@
   <script> 
   var overNode = function () {
     selectedNode = this; 
-    //console.log(selectedNode);
   };
 
   var outNode = function () {
     selectedNode = null;
-    //console.log(selectedNode);
   };
 
-
-
-
-
-
-
-
-
-
-    var x0 = 0, y0 = 5;
     var selectedElement = 0;
     var selectedNode = null;
     var currentX = 0;
@@ -52,30 +40,19 @@
     var sourceY = null;
 
     function startHandler(d) {
-    startNode = null;
     d3.event.sourceEvent.stopPropagation();
-    //d3.select(this).style('cursor', 'move');
-    //this.parentNode.appendChild(this);
-    endNode = this.id;
-    //startX = parseInt(d.x) + parseInt(d3.select(this.cx.animVal.value)) + 15;
-    //startY = parseInt(d.y) + parseInt(d3.select(this.cy.animVal.value));
-    //linkX = startX;
-    //linkY = startY;
     sourceCoords = d3.transform(d3.select(this).attr("transform")).translate;
-    sourceX = sourceCoords[0]; //this.x; //d3.select(this).x;
-    sourceY = sourceCoords[1]; //d3.select(this).y;
-    console.log("source: " + sourceX + "," + sourceY);
-    startNode = d3.event.sourceEvent.srcElement.parentNode.id;
+    sourceX = sourceCoords[0]; 
+    sourceY = sourceCoords[1]; 
     }
+
     function dropHandler(d) {
-    //d3.select(this).style('cursor', "crosshair");
     if (selectedNode) {
       targetCoords = d3.transform(d3.select(selectedNode).attr("transform")).translate;
       d3.select(this).attr("x", targetCoords[0]).attr("y", targetCoords[1])
        .attr("transform", "translate(" + [ targetCoords[0],targetCoords[1] ] + ")");
       d3.select(selectedNode).attr("x", sourceX).attr("y", sourceY)
        .attr("transform", "translate(" + [ sourceX,sourceY ] + ")");
-
     } else {
       d3.select(this).attr("x", sourceX).attr("y", sourceY)
        .attr("transform", "translate(" + [ sourceX,sourceY ] + ")");
@@ -106,11 +83,20 @@
             line_objects.push({name: key, phenotype: data[0][key], positions: []});
           }
         });
-
+       
+        maxDeltaN=1; 
         for (var i=1; i<data.length; i++) {
           Object.keys(data[i]).forEach(function(key, index) {
+            
             if (index > 1) {
-              line_objects[index-2].positions.push({pos:data[i].POS, call:data[i][key]});
+              L = line_objects[index-2].positions.length;
+              if (L > 0 /*i > 2*/) {
+                x_neighbour = line_objects[index-2].positions[L-1].pos; 
+              } else {
+                x_neighbour = data[i].POS-1;
+              }
+              line_objects[index-2].positions.push({pos:data[i].POS, call:data[i][key], dN: data[i].POS - x_neighbour});
+              maxDeltaN = Math.max(maxDeltaN, data[i].POS - x_neighbour);
             }
           });
         }
@@ -138,26 +124,35 @@
         .attr('transform', 'matrix(1 0 0 1 0 0)')
         .attr('onload', 'initTooltip(evt)')
 
+      var x0 = 0, y0 = 5;
+      distgroup = vexSVG.append('g')
+       .attr('id', 'vex-dN')
+       .data( [ {'x': x0, 'y': y0} ] )
+       .attr('transform', 'translate(' + x0 + ',' + y0 + ')');
+      
+      var tt_text;
+      var y_dN = y0;
+      var max_dN_height = 20;
+
       for (var i=0; i<line_objects.length; i++) {
-        var y = y0 + i * 6;
+        y = (y0 + max_dN_height) + i * 6;
+
+        /* create <g> for line-row */
         drawgroup = vexSVG.append('g')
           .attr('id', 'vex-svg-' + line_objects[i].name) 
           .data( [ {"x": x0, "y": y} ] )
-          //.attr('x', x0)
-          //.attr('y', y0)
-          //.attr('transform', 'matrix(1 0 0 1 0 0)')
           .attr('transform', 'translate(' + x0 + ',' + y + ')')
           .call(drag)
           .on("mouseover", overNode)
           .on("mouseout", outNode);
-       console.log("X:" + drawgroup.x);
 
-        if (line_objects[i].phenotype == 'W') {
+       /* create phenotype separators and set colour for line sentinels */
+       if (line_objects[i].phenotype == 'W') {
           color = '#00f';
           if (!W_sep_set) {
             vexSVG.append('rect')
                 .attr('x', x0)
-                //.attr('y', y-1)
+                .attr('y', y-1)
                 .attr('color', '#000')
                 .attr('height', 1 + 'px')
                 .attr('width', line_objects[0].positions.length * 10);
@@ -168,7 +163,7 @@
           if (!S_sep_set) {
             vexSVG.append('rect')
                 .attr('x', x0)
-                //.attr('y', y-1)
+                .attr('y', y-1)
                 .attr('color', '#000')
                 .attr('height', 1 + 'px')
                 .attr('width', line_objects[0].positions.length * 10);
@@ -177,15 +172,36 @@
         } else if (line_objects[i].phenotype == 'R') {
           color = '#0f0';
         }
-
+        
+        /* create line sentinels */
+        tt_text = line_objects[i].name + ':' + line_objects[i].phenotype;         
         drawgroup.append('rect')
             .attr('x', x0)
-            //.attr('y', y)
             .attr('fill', color)
             .attr('height', 5 + 'px')
-            .attr('width', 5 + 'px');
+            .attr('width', 5 + 'px')
+            .attr('onmousemove', 'ShowTooltip(evt, "' + tt_text + '",' + x0 + ',' + y + ')')
+            .attr('onmouseout', 'HideTooltip(evt)');
 
+         //yy = d3.scale.log().range([1, max_dN_height]).base(10).domain([1, 1000000000]);
+         yy = d3.scale.linear().range([1, max_dN_height]).domain([0, maxDeltaN / 1000000])
+         //console.log(yy(Math.log10(line_objects[i].positions[1].dN)) + ":" + line_objects[i].positions[1].dN);
+
+        /* draw line-row */
         for (var j=0,x=11; j<line_objects[i].positions.length; j++, x+=6) {
+          //console.log(yy(line_objects[i].positions[j].dN));
+          /* create neighbour distance plot */
+          var ttd_text = line_objects[i].positions[j].pos + ':' + line_objects[i].positions[j].dN + " (" + line_objects[i].positions[j].dN / 1000000 + "Mb)";
+          var dN_height = Math.log10(line_objects[i].positions[j].dN);// (line_objects[i].positions[j].dN);
+          distgroup.append('rect')
+              .attr('x', x)
+              .attr('fill', '#373B44')
+              .attr('height', yy(line_objects[i].positions[j].dN / 1000000)) //Math.log10(line_objects[i].positions[j].dN))) //dN_height) //function(d) { return yy(line_objects[i].positions[j].dN); })
+              .attr('width', 5 + 'px')
+              .attr('onmousemove', 'ShowTooltip(evt, "' + ttd_text + '",' + x + ',' + y_dN + ')')
+              .attr('onmouseout', 'HideTooltip(evt)');
+
+          /* determine call-colour */
           if (line_objects[i].positions[j].call == 'NA') {
             color = '#fff';
             call = 'NA';
@@ -199,11 +215,11 @@
             color = '#ffc';
             call = 'het';
           }
-
-          var tt_text = line_objects[i].name + ':' + line_objects[i].phenotype + ':' + line_objects[i].positions[j].pos + ':' + call + ' (af=' + line_objects[i].positions[j].call + ')';
+          
+          /* create call-rect */
+          tt_text = line_objects[i].name + ':' + line_objects[i].phenotype + ':' + line_objects[i].positions[j].pos + ':' + call + ' (af=' + line_objects[i].positions[j].call + ')';
           drawgroup.append('rect')
               .attr('x', x)
-              //.attr('y', y)
               .attr('fill', color)
               .attr('height', 5 + 'px')
               .attr('width', 5 + 'px')
