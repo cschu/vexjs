@@ -3,7 +3,10 @@
 <head>
   <meta http-equiv="content-type" content="text/html; charset=UTF-8">
   <title></title>
-  <script type='text/javascript' src="../lib/d3.js"></script>
+  <!-- <script type='text/javascript' src="lib/d3.js"></script> -->
+  <script type="text/javascript" src="http://mbostock.github.com/d3/d3.js?2.5.0"></script>
+  <script type="text/javascript" src="http://mbostock.github.com/d3/d3.layout.js?2.5.0"></script>
+  <script type='text/javascript' src='src/tooltip.js'></script>
 
   <link href="style.css" rel="stylesheet"/>
   <style>
@@ -18,115 +21,80 @@
     }
   </style>
 
-  <script>
-    function displayChromosome2(chrFile) {
-      alert(chrFile);
-    }
+  <script> 
+  var overNode = function () {
+    selectedNode = this; 
+    //console.log(selectedNode);
+  };
+
+  var outNode = function () {
+    selectedNode = null;
+    //console.log(selectedNode);
+  };
+
+
+
+
+
+
+
+
+
+
+    var x0 = 0, y0 = 5;
     var selectedElement = 0;
+    var selectedNode = null;
     var currentX = 0;
     var currentY = 0;
     var currentMatrix = 0;
 
-    function init(evt) {
-      if ( window.svgDocument == null ) {
-        svgDocument = evt.target.ownerDocument;
-      }
-      tooltip = svgDocument.getElementById('tooltip');
-      tooltip_bg = svgDocument.getElementById('tooltip_bg');
+    var sourceX = null;
+    var sourceY = null;
+
+    function startHandler(d) {
+    startNode = null;
+    d3.event.sourceEvent.stopPropagation();
+    //d3.select(this).style('cursor', 'move');
+    //this.parentNode.appendChild(this);
+    endNode = this.id;
+    //startX = parseInt(d.x) + parseInt(d3.select(this.cx.animVal.value)) + 15;
+    //startY = parseInt(d.y) + parseInt(d3.select(this.cy.animVal.value));
+    //linkX = startX;
+    //linkY = startY;
+    sourceCoords = d3.transform(d3.select(this).attr("transform")).translate;
+    sourceX = sourceCoords[0]; //this.x; //d3.select(this).x;
+    sourceY = sourceCoords[1]; //d3.select(this).y;
+    console.log("source: " + sourceX + "," + sourceY);
+    startNode = d3.event.sourceEvent.srcElement.parentNode.id;
     }
+    function dropHandler(d) {
+    //d3.select(this).style('cursor', "crosshair");
+    if (selectedNode) {
+      targetCoords = d3.transform(d3.select(selectedNode).attr("transform")).translate;
+      d3.select(this).attr("x", targetCoords[0]).attr("y", targetCoords[1])
+       .attr("transform", "translate(" + [ targetCoords[0],targetCoords[1] ] + ")");
+      d3.select(selectedNode).attr("x", sourceX).attr("y", sourceY)
+       .attr("transform", "translate(" + [ sourceX,sourceY ] + ")");
 
-    function ShowTooltip(evt, mouseovertext, x, y) {
-
-      tooltip.setAttributeNS(null,"x",x+11);
-      tooltip.setAttributeNS(null,"y",y+27);
-      tooltip.firstChild.data = mouseovertext;
-      tooltip.setAttributeNS(null,"visibility","visible");
-      tooltip_bg.setAttributeNS(null,"x",x+8);
-      tooltip_bg.setAttributeNS(null,"y",y+16);
-      tooltip_bg.setAttributeNS(null,"visibility","visible");
-      length = tooltip.getComputedTextLength();
-      tooltip_bg.setAttributeNS(null,"width",length+8);
+    } else {
+      d3.select(this).attr("x", sourceX).attr("y", sourceY)
+       .attr("transform", "translate(" + [ sourceX,sourceY ] + ")");
     }
+    selectedNode = null;
+   }   
 
-    function HideTooltip() {
-      tooltip.setAttributeNS(null,"visibility","hidden");
-      tooltip_bg.setAttributeNS(null,"visibility","hidden");
-    }
 
-    function selectElement(evt) {
-       selectedElement = evt.target.parentElement;
-       currentX = evt.clientX;
-       currentY = evt.clientY;
-       currentMatrix = selectedElement.getAttributeNS(null, "transform").slice(7,-1).split(' ');
-       for(var i=0; i<currentMatrix.length; i++) {
-         currentMatrix[i] = parseFloat(currentMatrix[i]);
-       }
-       selectedElement.setAttributeNS(null, "onmousemove", "moveElement(evt)");
-       selectedElement.setAttributeNS(null, "onmouseout", "deselectElement(evt)");
-       selectedElement.setAttributeNS(null, "onmouseup", "deselectElement(evt)");
-     }
-
-     function moveElement(evt){
-      dx = evt.clientX - currentX;
-      dy = evt.clientY - currentY;
-      currentMatrix[4] += dx;
-      currentMatrix[5] += dy;
-      newMatrix = "matrix(" + currentMatrix.join(' ') + ")";
-
-      selectedElement.setAttributeNS(null, "transform", newMatrix);
-      currentX = evt.clientX;
-      currentY = evt.clientY;
-    }
-    function deselectElement(evt){
-      if(selectedElement != 0){
-        selectedElement.removeAttributeNS(null, "onmousemove");
-        selectedElement.removeAttributeNS(null, "onmouseout");
-        selectedElement.removeAttributeNS(null, "onmouseup");
-        selectedElement = 0;
-      }
-    }
-
-    dragBehavior = d3.behavior.drag()
-        .on('dragend', onDragStart)
-        .on('drag', onDrag)
-        .on('dragend', onDragEnd);
-
-    function flashRect() {
-        rect.attr('fill', 'red').transition().attr('fill', 'black');
-    }
-
-    function onDragStart() {
-        console.log('onDragStart');
-    }
-
-    function onDrag() {
-        console.log('onDrag');
-
-        var x = (d3.event.sourceEvent.pageX);
-        var y = (d3.event.sourceEvent.pageY);
-
-        d3.select(this).attr('transform', 'translate(' + x + ')');
-
-        wasDragged = true;
-    }
-
-    function onDragEnd() {
-        if (wasDragged === true) {
-            console.log('onDragEnd');
-
-            // always do this on drag end
-            //flashRect();
-        }    wasDragged = false;
-    }
-
-    function onClick(d) {
-        if (d3.event.defaultPrevented === false) {
-            console.log('onClick');
-
-            // only do this on click if we didn't just finish dragging
-            flashRect();
-        }
-    }
+ // http://bl.ocks.org/enjalot/1378144
+ var drag = d3.behavior.drag()
+        .on("drag", function(d,i) {
+            d.x += d3.event.dx
+            d.y += d3.event.dy
+            d3.select(this).attr("transform", function(d,i){
+                return "translate(" + [ d.x,d.y ] + ")"
+            })
+        })
+        .on("dragstart", startHandler)
+        .on("dragend", dropHandler);
 
     function displayChromosome(chrFile) {
       d3.select('svg').remove();
@@ -148,7 +116,6 @@
         }
       console.log(line_objects[0])
 
-      var x0 = 0, y0 = 5;
 
       line_objects.sort(function(a, b){
           var x = a.phenotype,
@@ -159,7 +126,7 @@
 
       var W_sep_set = false, S_sep_set = false;
 
-      var draw = d3.select('#variant-explorer').append('svg')
+      var vexSVG = d3.select('#variant-explorer').append('svg')
         .attr('float', 'left')
         .attr('width', line_objects[0].positions.length * 10 + 'px')
         .attr('height', line_objects.length * 10 + 'px')
@@ -168,32 +135,29 @@
         .attr('margin', '0px 0px 0px 0px')
         .attr('padding', '0px 0px 0px 0px')
         .attr('display', 'block')
-        //.attr('onmousedown', 'selectElement(evt)' )
         .attr('transform', 'matrix(1 0 0 1 0 0)')
-        .attr('onload', 'init(evt)');
+        .attr('onload', 'initTooltip(evt)')
 
       for (var i=0; i<line_objects.length; i++) {
-
-        drawgroup = draw.append('g')
-          .attr('id', 'vex-svg-' + line_objects[i].name)
-          .attr('transform', 'matrix(1 0 0 1 0 0)')
-          //.attr('onmousedown', 'selectElement(evt)');
-          .attr('ondragstart', 'dragstart_handler(event);')
-          .attr('ondrop', 'drop_handler(event);')
-          .attr('ondragover', 'dragover_handler(event);')
-          .attr('draggable', 'true');
-        drawgroup
-          .call(dragBehavior)
-          .on('click', onClick);
-
-
         var y = y0 + i * 6;
+        drawgroup = vexSVG.append('g')
+          .attr('id', 'vex-svg-' + line_objects[i].name) 
+          .data( [ {"x": x0, "y": y} ] )
+          //.attr('x', x0)
+          //.attr('y', y0)
+          //.attr('transform', 'matrix(1 0 0 1 0 0)')
+          .attr('transform', 'translate(' + x0 + ',' + y + ')')
+          .call(drag)
+          .on("mouseover", overNode)
+          .on("mouseout", outNode);
+       console.log("X:" + drawgroup.x);
+
         if (line_objects[i].phenotype == 'W') {
           color = '#00f';
           if (!W_sep_set) {
-            draw.append('rect')
+            vexSVG.append('rect')
                 .attr('x', x0)
-                .attr('y', y-1)
+                //.attr('y', y-1)
                 .attr('color', '#000')
                 .attr('height', 1 + 'px')
                 .attr('width', line_objects[0].positions.length * 10);
@@ -202,9 +166,9 @@
         } else if (line_objects[i].phenotype == 'S') {
           color = '#f00';
           if (!S_sep_set) {
-            draw.append('rect')
+            vexSVG.append('rect')
                 .attr('x', x0)
-                .attr('y', y-1)
+                //.attr('y', y-1)
                 .attr('color', '#000')
                 .attr('height', 1 + 'px')
                 .attr('width', line_objects[0].positions.length * 10);
@@ -216,7 +180,7 @@
 
         drawgroup.append('rect')
             .attr('x', x0)
-            .attr('y', y)
+            //.attr('y', y)
             .attr('fill', color)
             .attr('height', 5 + 'px')
             .attr('width', 5 + 'px');
@@ -231,7 +195,7 @@
           } else if (line_objects[i].positions[j].call <= 0.1) {
             color ='#fcc';
             call = 'homR';
-          } else { //if (line_objects[i].positions[j].call == 'het') {
+          } else { 
             color = '#ffc';
             call = 'het';
           }
@@ -239,7 +203,7 @@
           var tt_text = line_objects[i].name + ':' + line_objects[i].phenotype + ':' + line_objects[i].positions[j].pos + ':' + call + ' (af=' + line_objects[i].positions[j].call + ')';
           drawgroup.append('rect')
               .attr('x', x)
-              .attr('y', y)
+              //.attr('y', y)
               .attr('fill', color)
               .attr('height', 5 + 'px')
               .attr('width', 5 + 'px')
@@ -250,7 +214,7 @@
 
       }
 
-       draw.append('rect')
+       vexSVG.append('rect')
         .attr('x', 0)
         .attr('y', 0)
         .attr('rx', 4)
@@ -262,7 +226,7 @@
         .attr('visibility', 'hidden');
 
 
-      draw.append('text')
+      vexSVG.append('text')
           .attr('x', 0)
           .attr('y', 0)
           .attr('class', 'tooltip')

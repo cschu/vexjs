@@ -1,0 +1,20 @@
+.hover-line {
+    background-color: black;
+}
+
+.tooltip {
+    background-color: white;
+    border: 1px solid white;
+    opacity: 1;
+    margin-left: 2px;
+    padding: 3px;
+    border-radius: 0px 10px 10px 10px;
+}
+
+.label {
+    white-space: nowrap;
+}
+
+.legend-item.unchecked .legend-color {
+    background-color: #eee !important;
+}
