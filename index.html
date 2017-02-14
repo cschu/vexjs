@@ -171,6 +171,8 @@
           }
         } else if (line_objects[i].phenotype == 'R') {
           color = '#0f0';
+        } else if (line_objects[i].phenotype == 'RX') {
+          color = '#00f';
         }
         
         /* create line sentinels */
@@ -190,6 +192,15 @@
         /* draw line-row */
         for (var j=0,x=11; j<line_objects[i].positions.length; j++, x+=6) {
           //console.log(yy(line_objects[i].positions[j].dN));
+          /* temporary hack for narrow-region markers */
+          if (line_objects[i].positions[j].pos == 335273843 || line_objects[i].positions[j].pos == 377899584) {
+            drawgroup.append('rect')
+		.attr('x', x+1)
+                .attr('y', y0)
+		.attr('fill', '#f00')
+		.attr('height', 5 + 'px')
+		.attr('width', 3 + 'px');
+          } 
           /* create neighbour distance plot */
           var ttd_text = line_objects[i].positions[j].pos + ':' + line_objects[i].positions[j].dN + " (" + line_objects[i].positions[j].dN / 1000000 + "Mb)";
           var dN_height = Math.log10(line_objects[i].positions[j].dN);// (line_objects[i].positions[j].dN);
@@ -209,10 +220,10 @@
             color = '#cfc';
             call = 'homA';
           } else if (line_objects[i].positions[j].call <= 0.1) {
-            color ='#fcc';
+	    color = '#ffc';
             call = 'homR';
           } else { 
-            color = '#ffc';
+            color ='#fcc';
             call = 'het';
           }
           
@@ -258,23 +269,51 @@
 
 
 </head>
-<body style="width: 100%; height: 100%;" onload="displayChromosome('data/NRGENE.chr1B.vcf.hom90.afTable.tsv')">
+<body style="width: 100%; height: 100%;" onload="displayChromosome('data/ffX_chr1B.csv')">
   <form>
     <select name="chrSelect" onload="displayChromosome(this.value)" onchange="displayChromosome(this.value)">
-      <option value="data/NRGENE.chr1A.vcf.hom90.afTable.tsv">Chr1A</option>
-      <option value="data/NRGENE.chr1B.vcf.hom90.afTable.tsv" selected="true">Chr1B</option>
-      <option value="data/NRGENE.chr2A.vcf.hom90.afTable.tsv">Chr2A</option>
-      <option value="data/NRGENE.chr2B.vcf.hom90.afTable.tsv">Chr2B</option>
-      <option value="data/NRGENE.chr3A.vcf.hom90.afTable.tsv">Chr3A</option>
-      <option value="data/NRGENE.chr3B.vcf.hom90.afTable.tsv">Chr3B</option>
-      <option value="data/NRGENE.chr4A.vcf.hom90.afTable.tsv">Chr4A</option>
-      <option value="data/NRGENE.chr4B.vcf.hom90.afTable.tsv">Chr4B</option>
-      <option value="data/NRGENE.chr5A.vcf.hom90.afTable.tsv">Chr5A</option>
-      <option value="data/NRGENE.chr5B.vcf.hom90.afTable.tsv">Chr5B</option>
-      <option value="data/NRGENE.chr6A.vcf.hom90.afTable.tsv">Chr6A</option>
-      <option value="data/NRGENE.chr6B.vcf.hom90.afTable.tsv">Chr6B</option>
-      <option value="data/NRGENE.chr7A.vcf.hom90.afTable.tsv">Chr7A</option>
-      <option value="data/NRGENE.chr7B.vcf.hom90.afTable.tsv">Chr7B</option>
+      <option value="data/ffX_chr1B.csv" selected="true">NRGENE - Chr1B (ffX)</option>
+      <option value="data/NRGENE.chr1A.vcf.hom90.afTable.tsv">NRGENE - Chr1A</option>
+      <option value="data/NRGENE.chr1B.vcf.hom90.afTable.tsv">NRGENE - Chr1B</option>
+      <option value="data/NRGENE.chr2A.vcf.hom90.afTable.tsv">NRGENE - Chr2A</option>
+      <option value="data/NRGENE.chr2B.vcf.hom90.afTable.tsv">NRGENE - Chr2B</option>
+      <option value="data/NRGENE.chr3A.vcf.hom90.afTable.tsv">NRGENE - Chr3A</option>
+      <option value="data/NRGENE.chr3B.vcf.hom90.afTable.tsv">NRGENE - Chr3B</option>
+      <option value="data/NRGENE.chr4A.vcf.hom90.afTable.tsv">NRGENE - Chr4A</option>
+      <option value="data/NRGENE.chr4B.vcf.hom90.afTable.tsv">NRGENE - Chr4B</option>
+      <option value="data/NRGENE.chr5A.vcf.hom90.afTable.tsv">NRGENE - Chr5A</option>
+      <option value="data/NRGENE.chr5B.vcf.hom90.afTable.tsv">NRGENE - Chr5B</option>
+      <option value="data/NRGENE.chr6A.vcf.hom90.afTable.tsv">NRGENE - Chr6A</option>
+      <option value="data/NRGENE.chr6B.vcf.hom90.afTable.tsv">NRGENE - Chr6B</option>
+      <option value="data/NRGENE.chr7A.vcf.hom90.afTable.tsv">NRGENE - Chr7A</option>
+      <option value="data/NRGENE.chr7B.vcf.hom90.afTable.tsv">NRGENE - Chr7B</option>
+      <option value="data/TGACv1.1AS.afTable.tsv">TGACv1 - Chr1AS</option>
+      <option value="data/TGACv1.1AL.afTable.tsv">TGACv1 - Chr1AL</option>
+      <option value="data/TGACv1.2AS.afTable.tsv">TGACv1 - Chr2AS</option>
+      <option value="data/TGACv1.2AL.afTable.tsv">TGACv1 - Chr2AL</option>   
+      <option value="data/TGACv1.3AS.afTable.tsv">TGACv1 - Chr3AS</option>
+      <option value="data/TGACv1.3AL.afTable.tsv">TGACv1 - Chr3AL</option>
+      <option value="data/TGACv1.4AS.afTable.tsv">TGACv1 - Chr4AS</option>
+      <option value="data/TGACv1.4AL.afTable.tsv">TGACv1 - Chr4AL</option>   
+      <option value="data/TGACv1.5AS.afTable.tsv">TGACv1 - Chr5AS</option>
+      <option value="data/TGACv1.5AL.afTable.tsv">TGACv1 - Chr5AL</option>
+      <option value="data/TGACv1.6AS.afTable.tsv">TGACv1 - Chr6AS</option>
+      <option value="data/TGACv1.6AL.afTable.tsv">TGACv1 - Chr6AL</option>   
+      <option value="data/TGACv1.7AS.afTable.tsv">TGACv1 - Chr7AS</option>
+      <option value="data/TGACv1.7AL.afTable.tsv">TGACv1 - Chr7AL</option>
+      <option value="data/TGACv1.1BS.afTable.tsv">TGACv1 - Chr1BS</option>
+      <option value="data/TGACv1.1BL.afTable.tsv">TGACv1 - Chr1BL</option>
+      <option value="data/TGACv1.2BS.afTable.tsv">TGACv1 - Chr2BS</option>
+      <option value="data/TGACv1.2BL.afTable.tsv">TGACv1 - Chr2BL</option>   
+      <option value="data/TGACv1.3B.afTable.tsv">TGACv1 - Chr3B</option>
+      <option value="data/TGACv1.4BS.afTable.tsv">TGACv1 - Chr4BS</option>
+      <option value="data/TGACv1.4BL.afTable.tsv">TGACv1 - Chr4BL</option>   
+      <option value="data/TGACv1.5BS.afTable.tsv">TGACv1 - Chr5BS</option>
+      <option value="data/TGACv1.5BL.afTable.tsv">TGACv1 - Chr5BL</option>
+      <option value="data/TGACv1.6BS.afTable.tsv">TGACv1 - Chr6BS</option>
+      <option value="data/TGACv1.6BL.afTable.tsv">TGACv1 - Chr6BL</option>   
+      <option value="data/TGACv1.7BS.afTable.tsv">TGACv1 - Chr7BS</option>
+      <option value="data/TGACv1.7BL.afTable.tsv">TGACv1 - Chr7BL</option>
     </select>
   </form>
 
